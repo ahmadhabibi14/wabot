@@ -40,7 +40,7 @@ func eventHandler(evt interface{}) {
 
 func main() {
 	dbLog := waLog.Stdout("Database", "DEBUG", true)
-	container, err := sqlstore.New("sqlite3", "file:wa-bot.db?_foreign_keys=on", dbLog)
+	container, err := sqlstore.New("sqlite3", "file:session.db?_foreign_keys=on", dbLog)
 	if err != nil {
 		panic(err)
 	}
