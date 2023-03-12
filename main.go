@@ -1,13 +1,20 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 
+	"github.com/ahmadhabibi14/wabot/models"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal"
 	"github.com/probandula/figlet4go"
@@ -20,7 +27,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var client *whatsmeow.Client
+
 func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env files")
+	}
 	ascii := figlet4go.NewAsciiRender()
 	renderStr, _ := ascii.Render("Habi-BOT")
 	// set browser
@@ -34,7 +47,49 @@ func init() {
 func eventHandler(evt interface{}) {
 	switch v := evt.(type) {
 	case *events.Message:
-		fmt.Println("Received a message!", v.Message.GetConversation())
+		if !v.Info.IsFromMe {
+			if v.Message.GetConversation() != "" {
+				// fmt.Println("Received a message!", v.Message.GetConversation())
+				msg := v.Message.GetConversation()
+				if strings.Contains(msg, "/ai") {
+					reqBody := models.Request{
+						ModelRequest: "text-davinci-003",
+						Prompt:       msg,
+						Temperature:  1,
+						MaxTokens:    100,
+					}
+					jsonBody, _ := json.Marshal(reqBody)
+					req, err := http.NewRequest("POST", "https://api.openai.com/v1/completions", bytes.NewBuffer(jsonBody))
+					req.Header.Add("Content-Type", "application/json")
+					req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("OPENAI_API_KEY")))
+					if err != nil {
+						panic(err)
+					}
+					// Send the request
+					httpClient := &http.Client{}
+					resp, err := httpClient.Do(req)
+					if err != nil {
+						panic(err)
+					}
+					defer resp.Body.Close()
+
+					// Read the response
+					jsonData, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						panic(err)
+					}
+
+					var data models.TextCompletionResponse
+					json.Unmarshal([]byte(jsonData), &data)
+
+					client.SendMessage(context.Background(), v.Info.Sender, &waProto.Message{
+						Conversation: proto.String(strings.TrimSpace(data.Choices[0].Text)),
+					})
+
+					fmt.Println(strings.TrimSpace(data.Choices[0].Text))
+				}
+			}
+		}
 	}
 }
 
@@ -50,9 +105,10 @@ func main() {
 		// panic(err)
 	}
 	clientLog := waLog.Stdout("Client", "DEBUG", true)
-	client := whatsmeow.NewClient(deviceStore, clientLog)
+	client = whatsmeow.NewClient(deviceStore, clientLog)
 	client.AddEventHandler(eventHandler)
 
+	// LOGIN
 	if client.Store.ID == nil {
 		qrChan, _ := client.GetQRChannel(context.Background())
 		err = client.Connect()

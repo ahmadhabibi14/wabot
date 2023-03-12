@@ -1,2 +1,4 @@
 /session.db
 /session.db-journal
+/main
+/.env
