@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 
+	"github.com/ahmadhabibi14/wabot/models"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal"
@@ -20,9 +25,6 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
-
-	// "github.com/sashabaranov/go-openai"
-	openai "github.com/sashabaranov/go-openai"
 )
 
 var client *whatsmeow.Client
@@ -50,29 +52,41 @@ func eventHandler(evt interface{}) {
 				// fmt.Println("Received a message!", v.Message.GetConversation())
 				msg := v.Message.GetConversation()
 				if strings.Contains(msg, "/ai") {
-					openAIclient := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-					resp, err := openAIclient.CreateChatCompletion(
-						context.Background(),
-						openai.ChatCompletionRequest{
-							Model: openai.GPT3Dot5Turbo,
-							Messages: []openai.ChatCompletionMessage{
-								{
-									Role:    openai.ChatMessageRoleUser,
-									Content: msg,
-								},
-							},
-						},
-					)
-					if err != nil {
-						fmt.Printf("Chat Completion Error: %v\n", err)
-						return
+					reqBody := models.Request{
+						ModelRequest: "text-davinci-003",
+						Prompt:       msg,
+						Temperature:  1,
+						MaxTokens:    100,
 					}
-					// Send Message
+					jsonBody, _ := json.Marshal(reqBody)
+					req, err := http.NewRequest("POST", "https://api.openai.com/v1/completions", bytes.NewBuffer(jsonBody))
+					req.Header.Add("Content-Type", "application/json")
+					req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", os.Getenv("OPENAI_API_KEY")))
+					if err != nil {
+						panic(err)
+					}
+					// Send the request
+					httpClient := &http.Client{}
+					resp, err := httpClient.Do(req)
+					if err != nil {
+						panic(err)
+					}
+					defer resp.Body.Close()
+
+					// Read the response
+					jsonData, err := ioutil.ReadAll(resp.Body)
+					if err != nil {
+						panic(err)
+					}
+
+					var data models.TextCompletionResponse
+					json.Unmarshal([]byte(jsonData), &data)
+
 					client.SendMessage(context.Background(), v.Info.Sender, &waProto.Message{
-						Conversation: proto.String(strings.TrimSpace(resp.Choices[0].Message.Content)),
+						Conversation: proto.String(strings.TrimSpace(data.Choices[0].Text)),
 					})
 
-					fmt.Println(strings.TrimSpace(resp.Choices[0].Message.Content))
+					fmt.Println(strings.TrimSpace(data.Choices[0].Text))
 				}
 			}
 		}
