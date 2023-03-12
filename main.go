@@ -10,7 +10,6 @@ import (
 	"syscall"
 
 	"github.com/ahmadhabibi14/wabot/commands"
-
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal"
@@ -35,17 +34,13 @@ func init() {
 	options := figlet4go.NewRenderOptions()
 	options.FontName = "larry3d"
 	options.FontColor = []figlet4go.Color{
-		figlet4go.ColorGreen,
-		figlet4go.ColorYellow,
-		figlet4go.ColorCyan,
-		figlet4go.ColorRed,
-		figlet4go.ColorMagenta,
+		figlet4go.ColorGreen, figlet4go.ColorYellow, figlet4go.ColorCyan,
+		figlet4go.ColorRed, figlet4go.ColorMagenta,
 	}
 	ascii.LoadFont("/fonts/larry3d.flf")
 	renderStr, _ := ascii.RenderOpts("Habi-BOT", options)
 	// Print Banner
 	fmt.Println(renderStr)
-
 	// set browser
 	store.DeviceProps.PlatformType = waProto.DeviceProps_DESKTOP.Enum()
 	store.DeviceProps.Os = proto.String("Habi-BOT")
@@ -54,7 +49,7 @@ func init() {
 func eventHandler(evt interface{}) {
 	switch v := evt.(type) {
 	case *events.Message:
-		if !v.Info.IsFromMe {
+		if !v.Info.IsGroup {
 			if v.Message.GetConversation() != "" {
 				msg := v.Message.GetConversation()
 				if strings.Contains(msg, "/ai") { // ChatGPT Command
@@ -67,6 +62,18 @@ func eventHandler(evt interface{}) {
 						Conversation: proto.String(commands.Help()),
 					})
 				}
+			}
+		} else if v.Info.IsGroup == true {
+			msg := v.Message.GetConversation()
+			groupInfo, err := client.GetGroupInfo(v.Info.Chat)
+			if err != nil {
+				log.Fatalf("Error get group info %v\n", err)
+			}
+			if strings.Contains(msg, "/ai") { // ChatGPT Command
+				client.SendMessage(context.Background(), groupInfo.JID, &waProto.Message{
+					Conversation: proto.String(commands.ChatGPT(msg)),
+				})
+				log.Println(commands.ChatGPT(msg))
 			}
 		}
 	}
@@ -81,12 +88,10 @@ func main() {
 	deviceStore, err := container.GetFirstDevice()
 	if err != nil {
 		log.Panic(err)
-		// panic(err)
 	}
 	clientLog := waLog.Stdout("Client", "DEBUG", true)
 	client = whatsmeow.NewClient(deviceStore, clientLog)
 	client.AddEventHandler(eventHandler)
-
 	// LOGIN
 	if client.Store.ID == nil {
 		qrChan, _ := client.GetQRChannel(context.Background())
@@ -109,10 +114,8 @@ func main() {
 			panic(err)
 		}
 	}
-
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-
 	client.Disconnect()
 }
