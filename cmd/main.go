@@ -6,10 +6,9 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 
-	"github.com/ahmadhabibi14/wabot/commands"
+	"github.com/ahmadhabibi14/wabot/handler"
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal"
@@ -18,12 +17,9 @@ import (
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/store"
 	"go.mau.fi/whatsmeow/store/sqlstore"
-	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"google.golang.org/protobuf/proto"
 )
-
-var client *whatsmeow.Client
 
 func init() {
 	err := godotenv.Load()
@@ -46,39 +42,6 @@ func init() {
 	store.DeviceProps.Os = proto.String("Habi-BOT")
 }
 
-func eventHandler(evt interface{}) {
-	switch v := evt.(type) {
-	case *events.Message:
-		if !v.Info.IsGroup {
-			if v.Message.GetConversation() != "" {
-				msg := v.Message.GetConversation()
-				if strings.Contains(msg, "/ai") { // ChatGPT Command
-					client.SendMessage(context.Background(), v.Info.Sender, &waProto.Message{
-						Conversation: proto.String(commands.ChatGPT(msg)),
-					})
-					log.Println(commands.ChatGPT(msg))
-				} else if v.Message.GetConversation() == "/help" { // Help Command
-					client.SendMessage(context.Background(), v.Info.Sender, &waProto.Message{
-						Conversation: proto.String(commands.Help()),
-					})
-				}
-			}
-		} else if v.Info.IsGroup == true {
-			msg := v.Message.GetConversation()
-			groupInfo, err := client.GetGroupInfo(v.Info.Chat)
-			if err != nil {
-				log.Fatalf("Error get group info %v\n", err)
-			}
-			if strings.Contains(msg, "/ai") { // ChatGPT Command
-				client.SendMessage(context.Background(), groupInfo.JID, &waProto.Message{
-					Conversation: proto.String(commands.ChatGPT(msg)),
-				})
-				log.Println(commands.ChatGPT(msg))
-			}
-		}
-	}
-}
-
 func main() {
 	dbLog := waLog.Stdout("Database", "DEBUG", true)
 	container, err := sqlstore.New("sqlite3", "file:session.db?_foreign_keys=on", dbLog)
@@ -90,7 +53,8 @@ func main() {
 		log.Panic(err)
 	}
 	clientLog := waLog.Stdout("Client", "DEBUG", true)
-	client = whatsmeow.NewClient(deviceStore, clientLog)
+	client := whatsmeow.NewClient(deviceStore, clientLog)
+	eventHandler := handler.EventHandler(client)
 	client.AddEventHandler(eventHandler)
 	// LOGIN
 	if client.Store.ID == nil {
