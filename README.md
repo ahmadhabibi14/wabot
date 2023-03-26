@@ -11,7 +11,9 @@
 
 #### Current Features :
 - ChatGPT Integration. Send message to my number with **/ai** in the beginning text, so that chatgpt will send response. For Example: ``/ai what is github?``
-- Help menu, just type ``/help``
+- Image generator with Dall-E by OpenAI. Generate image by text, e.g ``/ai astronout in space``
+- Help menu, will help you use the bot, just type ``/help``
+- Menu, to see list commands and features, just type ``/meu``
 - etc.
 
 ##### Other Features still in development...
