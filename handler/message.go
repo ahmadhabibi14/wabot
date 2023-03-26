@@ -3,7 +3,6 @@ package handler
 import (
 	"context"
 
-	_ "github.com/mattn/go-sqlite3"
 	"go.mau.fi/whatsmeow"
 	waProto "go.mau.fi/whatsmeow/binary/proto"
 	"go.mau.fi/whatsmeow/types"
