@@ -24,7 +24,7 @@ import (
 func init() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env files")
+		log.Println("Error loading .env files")
 	}
 	ascii := figlet4go.NewAsciiRender()
 	options := figlet4go.NewRenderOptions()
@@ -46,11 +46,11 @@ func main() {
 	dbLog := waLog.Stdout("Database", "DEBUG", true)
 	container, err := sqlstore.New("sqlite3", "file:session.db?_foreign_keys=on", dbLog)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	deviceStore, err := container.GetFirstDevice()
 	if err != nil {
-		log.Panic(err)
+		log.Println(err)
 	}
 	clientLog := waLog.Stdout("Client", "DEBUG", true)
 	client := whatsmeow.NewClient(deviceStore, clientLog)
@@ -61,7 +61,7 @@ func main() {
 		qrChan, _ := client.GetQRChannel(context.Background())
 		err = client.Connect()
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
 		for evt := range qrChan {
 			if evt.Event == "code" {
@@ -75,7 +75,7 @@ func main() {
 	} else {
 		err = client.Connect()
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
 	}
 	c := make(chan os.Signal)

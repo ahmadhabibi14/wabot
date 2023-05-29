@@ -23,24 +23,24 @@ func DallE(msg string) /*string*/ {
 	}
 	respBase64, err := client.CreateImage(ctx, reqBase64)
 	if err != nil {
-		log.Fatalf("Image creation error :: %v\n", err)
+		log.Printf("Image creation error :: %v\n", err)
 	}
 	imgBytes, err := base64.StdEncoding.DecodeString(respBase64.Data[0].B64JSON)
 	if err != nil {
-		log.Fatalf("Base64 decode error :: %v\n", err)
+		log.Printf("Base64 decode error :: %v\n", err)
 	}
 	r := bytes.NewReader(imgBytes)
 	imgData, err := png.Decode(r)
 	if err != nil {
-		log.Fatalf("PNG decode error :: %v\n", err)
+		log.Printf("PNG decode error :: %v\n", err)
 	}
 	file, err := os.Create("img/generated/imageGenerated.png")
 	if err != nil {
-		log.Fatalf("File creation error :: %v\n", err)
+		log.Printf("File creation error :: %v\n", err)
 	}
 	defer file.Close()
 	if err := png.Encode(file, imgData); err != nil {
-		log.Fatalf("PNG encode error %v\n", err)
+		log.Printf("PNG encode error %v\n", err)
 	}
 	// var success string = "The image was saved in img/generated/imageGenerated.png"
 	return
