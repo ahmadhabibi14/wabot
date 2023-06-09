@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -11,20 +10,16 @@ import (
 
 func ChatGPT(msg string) string {
 	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-	resp, err := client.CreateChatCompletion(
-		context.Background(),
-		openai.ChatCompletionRequest{
-			Model: openai.GPT3Dot5Turbo,
-			Messages: []openai.ChatCompletionMessage{
-				{
-					Role:    openai.ChatMessageRoleUser,
-					Content: msg,
-				},
-			},
-		},
-	)
-	if err != nil {
-		fmt.Printf("Chat Completion Error: %v\n", err)
+	ctx := context.Background()
+
+	req := openai.CompletionRequest{
+		Model:     openai.GPT3Ada,
+		MaxTokens: 5,
+		Prompt:    msg,
 	}
-	return strings.TrimSpace(resp.Choices[0].Message.Content)
+	resp, err := client.CreateCompletion(ctx, req)
+	if err != nil {
+		return "Completion error"
+	}
+	return strings.TrimSpace(resp.Choices[0].Text)
 }

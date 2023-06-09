@@ -7,7 +7,7 @@ require (
 	github.com/mdp/qrterminal v1.0.1
 	github.com/probandula/figlet4go v0.0.0-20190224160619-d6cef5b186ea
 	go.mau.fi/whatsmeow v0.0.0-20230306190159-5caded34a872
-	google.golang.org/protobuf v1.28.1
+	google.golang.org/protobuf v1.30.0
 )
 
 require (
