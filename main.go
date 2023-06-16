@@ -52,8 +52,8 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	clientLog := waLog.Stdout("Client", "DEBUG", true)
-	client := whatsmeow.NewClient(deviceStore, clientLog)
+	// clientLog := waLog.Stdout("Client", "DEBUG", true)
+	client := whatsmeow.NewClient(deviceStore, nil)
 	eventHandler := handler.EventHandler(client)
 	client.AddEventHandler(eventHandler)
 	// LOGIN

@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func MessageHandler(client *whatsmeow.Client, v *events.Message, to types.JID, msg string) {
+func TextMsg(client *whatsmeow.Client, v *events.Message, to types.JID, msg string) {
 	client.SendMessage(context.Background(), to, &waProto.Message{
 		Conversation: proto.String(msg),
 	})
