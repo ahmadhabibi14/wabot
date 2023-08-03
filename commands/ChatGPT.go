@@ -13,9 +13,11 @@ import (
 
 func ChatGPT() string {
 	var msg = models.Message{}
-	e := openai.New("os.Getenv("OPENAI_API_KEY")")
 
-	var prompt = fmt.Sprintf("%s", msg)
+	e := openai.New(os.Getenv("OPENAI_API_KEY"))
+
+	msg.Mu.Lock()
+	var prompt = fmt.Sprintf("%s", msg.MsgReceive)
 	resp, err := e.Completion(context.Background(), &openai.CompletionOptions{
 		Model:  openai.ModelGPT3TextDavinci003,
 		Prompt: []string{prompt},
@@ -31,5 +33,6 @@ func ChatGPT() string {
 		log.Println(string(b))
 	}
 
+	msg.Mu.Unlock()
 	return resp.Choices[0].Text
 }
