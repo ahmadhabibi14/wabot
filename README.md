@@ -9,11 +9,4 @@
 5. Run `go get` to install required modules
 6. Run `start.sh` (Make sure you assign execute permission)
 
-#### Current Features :
-- `ChatGPT` Integration. Send message to my number with **/ai** in the beginning text, so that chatgpt will send response. For Example: ``/ai what is github?``
-- Image generator with Dall-E by OpenAI. Generate image by text, e.g ``/ai astronout in space``
-- Help menu, will help you use the bot, just type ``/help``
-- Menu, to see list commands and features, just type ``/menu``
-- etc.
-
-#### Other Features still in development...
+#### Features still in development...
