@@ -9,28 +9,27 @@ jobs:
     steps:
       - name: Checkout Code 🖥️
         uses: actions/checkout@v3
-      
-      - name: Install SSH Key
-        uses: shimataro/ssh-key-action@v2
-        with:
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: 'bakekok walakakok'
-      
-      - name: Add known_hosts 🖥️
-        run: ssh-keyscan -p ${{ secrets.SSH_PORT}} -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
-      - name: Upload with rsync 🔁 
-        run: rsync -avz "ssh -p ${{ secrets.SSH_PORT }}" ./ root@${{ secrets.SERVER_IP }}:/root/wabot
-        
+      - name: Upload with rsync 🔁
+        uses: burnett01/rsync-deployments@6.0.0
+        with:
+          switches: -avzr --delete
+          path: ./
+          remote_path: /root/wabot
+          remote_host: ${{ secrets.SERVER_IP }}
+          remote_port: ${{ secrets.SSH_PORT }}
+          remote_user: ${{ secrets.SERVER_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       # Execute command ke VPS
       - name: Execute Command ☣️
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
-          username: root
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASS }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          port: ${{ secrets.SERVER_PORT }}
           script: |
             cd /root/wabot
             go build main.go
