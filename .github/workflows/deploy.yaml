@@ -14,13 +14,13 @@ jobs:
         uses: shimataro/ssh-key-action@v2
         with:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          known_hosts: '${{ secrets.SERVER_IP }}'
+          known_hosts: 'bakekok walakakok'
       
       - name: Add known_hosts 🖥️
-        run: ssh-keyscan -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
+        run: ssh-keyscan -p ${{ secrets.SSH_PORT}} -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: Upload with rsync 🔁 
-        run: rsync -avz ./ root@${{ secrets.SERVER_IP }}:/root/wabot
+        run: rsync -avz "ssh -p ${{ secrets.SSH_PORT }}" ./ root@${{ secrets.SERVER_IP }}:/root/wabot
 
       # Execute command ke VPS
       - name: Execute Command ☣️
@@ -29,7 +29,7 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 22
+          port: ${{ secrets.SSH_PORT }}
           script: |
             cd /root/wabot
             go build main.go
