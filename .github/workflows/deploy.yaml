@@ -10,16 +10,15 @@ jobs:
       - name: Checkout Code 🖥️
         uses: actions/checkout@v3
 
-      # - name: Upload with rsync 🔁
-      #   uses: burnett01/rsync-deployments@6.0.0
-      #   with:
-      #     switches: -avzr --delete
-      #     path: ./
-      #     remote_path: /root/wabot
-      #     remote_host: ${{ secrets.SERVER_IP }}
-      #     remote_port: ${{ secrets.SSH_PORT }}
-      #     remote_user: ${{ secrets.SERVER_USER }}
-      #     remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
+      - name: Upload with rsync 🔁
+        uses: burnett01/rsync-deployments@6.0.0
+        with:
+          switches: -avzr --delete
+          path: ./
+          remote_path: /root/wabot
+          remote_host: ${{ secrets.SERVER_IP }}
+          remote_user: ${{ secrets.SERVER_USER }}
+          remote_key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       # Execute command ke VPS
       - name: Execute Command ☣️
