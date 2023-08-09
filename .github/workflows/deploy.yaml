@@ -13,11 +13,11 @@ jobs:
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
         with:
-          key: {%- raw -%} ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           known_hosts: 'bakekok walakakok'
       
       - name: Add known_hosts 🖥️
-        run: ssh-keyscan -p ${{ secrets.SSH_PORT}} -H ${{ secrets.SERVER_IP }}{% endraw%} >> ~/.ssh/known_hosts
+        run: ssh-keyscan -p ${{ secrets.SSH_PORT}} -H ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
 
       - name: Upload with rsync 🔁 
         run: rsync -avz "ssh -p ${{ secrets.SSH_PORT }}" ./ root@${{ secrets.SERVER_IP }}:/root/wabot
