@@ -1,0 +1,16 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  include_ext = ['go']
+  exclude_regex = ['_test.go']
+  exclude_dir = ['tmp']
+  delay = 1000
+  kill_delay = "0s"
+
+[color]
+  app = ""
+  build = "yellow"
+  main = "magenta"
+  runner = "green"
+  watcher = "cyan"

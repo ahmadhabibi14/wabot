@@ -6,11 +6,12 @@
   - Go Programming Language https://go.dev/
   - SQLite Database https://www.sqlite.org/
   - OpenAI API key, generate at https://platform.openai.com/account/api-keys
+  - For better development experience, use [Air - Live reload](https://github.com/cosmtrek/air)
 - **.env Variables**:
   - `OPENAI_API_KEY`
 - **How to run**:
-  - `go get` to install required modules
-  - `start.sh` (Make sure to assign execute permission)
+  - Run `go get` to install required modules
+  - Run `air` to start development, note that you have installed [Air - Live reload](https://github.com/cosmtrek/air)
  
 ## Deployment
 
