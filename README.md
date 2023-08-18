@@ -57,3 +57,17 @@ ExecStart=/root/wabot/main
 [Install]
 WantedBy=multi-user.target
 ```
+
+Enable SystemD service:
+```sh
+sudo systemctl start whatsappbot.service
+```
+
+#### Deploy with existing script
+
+Go to `/deploy` directory, and run script
+
+```shell
+# Run this script, note that your ssh private key is authorized by server
+./deploy.sh
+```

@@ -35,3 +35,4 @@ jobs:
           script: |
             cd /root/wabot
             go build main.go
+            systemctl restart whatsappbot.service
