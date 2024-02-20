@@ -1,8 +1,9 @@
 package commands
 
-var Message = map[string]string{
+var Messages = map[string]string{
 	"/help":   Help(),
 	"/chtgpt": ChatGPT(),
+	"/gemini": GeminiAI(),
 }
 
 // var Text = map[string]func()string{

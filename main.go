@@ -54,7 +54,7 @@ func main() {
 	}
 	// clientLog := waLog.Stdout("Client", "DEBUG", true)
 	client := whatsmeow.NewClient(deviceStore, nil)
-	eventHandler := handler.EventHandler(client)
+	eventHandler := handler.Event(client)
 	client.AddEventHandler(eventHandler)
 	// LOGIN
 	if client.Store.ID == nil {

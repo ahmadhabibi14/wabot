@@ -1,0 +1,8 @@
+{
+  "app": {
+    "name": "Habi-Bot",
+    "description": "WhatsApp Bot with multi-device support, built with Go, Whatsmeow, and SQlite",
+    "author": "Ahmad Habibi",
+    "version": "1.0.0"
+  }
+}

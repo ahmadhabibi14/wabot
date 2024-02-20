@@ -10,8 +10,8 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 )
 
-func EventHandler(client *whatsmeow.Client) func(evt interface{}) {
-	textMsg := commands.Message
+func Event(client *whatsmeow.Client) func(evt interface{}) {
+	textMsg := commands.Messages
 	msgReceive := models.Message{}
 
 	return func(evt interface{}) {

@@ -1,7 +1,0 @@
-{
-  "yaml.schemas": {
-    "https://json.schemastore.org/yamllint.json": "*.yaml"
-  },
-  "editor.semanticTokenColorCustomizations": {
-  }
-}
