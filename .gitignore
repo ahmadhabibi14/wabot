@@ -1,5 +1,5 @@
-/session.db
-/session.db-journal
-/main
-/.env
-/tmp/main
+session.db
+session.db-journal
+main
+.env
+tmp/main
