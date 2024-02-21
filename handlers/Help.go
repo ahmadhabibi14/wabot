@@ -1,8 +1,11 @@
-package commands
+package handlers
 
-import "strings"
+import (
+	"context"
+	"strings"
+)
 
-func Help() string {
+func Help(ctx context.Context, in string) string {
 	const msg string = `
 Ya, Ada yang bisa saya bantu ?
 Akun ini adalah bot 🤖
