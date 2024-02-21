@@ -33,7 +33,7 @@ func init() {
 		figlet4go.ColorGreen, figlet4go.ColorYellow, figlet4go.ColorCyan,
 		figlet4go.ColorRed, figlet4go.ColorMagenta,
 	}
-	ascii.LoadFont("/fonts/larry3d.flf")
+	ascii.LoadFont("fonts/larry3d.flf")
 	renderStr, _ := ascii.RenderOpts("Habi-BOT", options)
 	// Print Banner
 	fmt.Println(renderStr)

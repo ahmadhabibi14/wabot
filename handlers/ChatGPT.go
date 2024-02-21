@@ -8,16 +8,12 @@ import (
 	"os"
 
 	"github.com/0x9ef/openai-go"
-	"github.com/ahmadhabibi14/wabot/models"
 )
 
-func ChatGPT() string {
-	var msg = models.Message{}
-
+func ChatGPT(ctx context.Context, in string) string {
 	e := openai.New(os.Getenv("OPENAI_API_KEY"))
 
-	msg.Mu.Lock()
-	var prompt = fmt.Sprintf("%s", msg.MsgReceive)
+	var prompt = in
 	resp, err := e.Completion(context.Background(), &openai.CompletionOptions{
 		Model:  openai.ModelGPT3TextDavinci003,
 		Prompt: []string{prompt},
@@ -33,6 +29,5 @@ func ChatGPT() string {
 		log.Println(string(b))
 	}
 
-	msg.Mu.Unlock()
 	return resp.Choices[0].Text
 }
