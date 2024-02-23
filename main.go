@@ -11,9 +11,11 @@ import (
 )
 
 func main() {
+	configs.LoadEnv()
+
 	botName := os.Getenv("BOT_NAME")
 	utils.PrintBanner(botName)
-	configs.LoadEnv()
+
 	logLevel := os.Getenv("LOG_LEVEL")
 	dbLog := waLog.Stdout("Database", logLevel, true)
 	store := services.NewStore("sqlite3", "file:session.db?_foreign_keys=on", dbLog)
