@@ -93,7 +93,7 @@ func event(client *whatsmeow.Client) func(evt interface{}) {
 					for key, value := range CMD_TextToText {
 						if strings.Contains(msg, key) {
 							res := value(ctx, msg)
-							messageText(client, v, v.Info.Sender, res)
+							messageText(client, ctx, v, v.Info.Sender, res)
 						}
 					}
 				}
@@ -102,8 +102,8 @@ func event(client *whatsmeow.Client) func(evt interface{}) {
 	}
 }
 
-func messageText(client *whatsmeow.Client, v *events.Message, to types.JID, msg string) {
-	_, err := client.SendMessage(context.Background(), to, &waProto.Message{
+func messageText(client *whatsmeow.Client, ctx context.Context, v *events.Message, to types.JID, msg string) {
+	_, err := client.SendMessage(ctx, to, &waProto.Message{
 		Conversation: proto.String(msg),
 	})
 	if err != nil {
