@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
 )
 
 func GeminiAI(ctx context.Context, in string) string {
-	in = strings.Replace(in, "/gemini", "", 1)
-
 	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GEMINI_API_KEY")))
 	if err != nil {
 		log.Println(`GeminiAI`, err)

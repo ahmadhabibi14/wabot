@@ -1,14 +1,16 @@
 package handlers
 
 import (
-	"context"
+	"os"
 	"strings"
 )
 
-func Help(ctx context.Context, in string) string {
-	const msg string = `
-Ya, Ada yang bisa saya bantu ?
-Akun ini adalah bot 🤖
-	`
+func Help() string {
+	botName := os.Getenv("BOT_NAME")
+	msg := `*` + botName + `* - WhatsApp Bot
+
+Hey, can I help you ?
+This account is a bot 🤖`
+
 	return strings.TrimSpace(msg)
 }

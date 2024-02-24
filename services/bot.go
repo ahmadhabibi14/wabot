@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/ahmadhabibi14/wabot/handlers"
 	"github.com/ahmadhabibi14/wabot/utils"
-	"github.com/disintegration/imaging"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal"
 	"go.mau.fi/whatsmeow"
@@ -76,33 +74,92 @@ func event(client *whatsmeow.Client) func(evt interface{}) {
 			img := v.Message.GetImageMessage()
 			ctx := context.Background()
 
-			textToText(msg, ctx, client, v, v.Info.Sender)
-			generateSticker(img, ctx, client, v, v.Info.Chat)
-			sendImgBack(img, ctx, client, v, v.Info.Chat)
+			generalMsg(msg, ctx, client, v, v.Info.Sender)
+			commandToText(msg, ctx, client, v, v.Info.Sender)
+			imageToImage(ctx, client, v, v.Info.Sender, img)
 		}
 	}
 }
 
-var CMD_TextToText = map[string]func(ctx context.Context, in string) string{
-	`/help`:   handlers.Help,
-	`/chtgpt`: handlers.ChatGPT,
-	`/gemini`: handlers.GeminiAI,
+var CMD_General = map[string]func() string{
+	`/menu`: handlers.Menu,
+	`/help`: handlers.Help,
 }
 
-func textToText(msg string, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID) {
-	for key, value := range CMD_TextToText {
-		if strings.Contains(msg, key) {
-			res := value(ctx, msg)
+func generalMsg(
+	msg string,
+	ctx context.Context,
+	client *whatsmeow.Client,
+	v *events.Message,
+	to types.JID,
+) {
+	for key, value := range CMD_General {
+		if msg == key {
+			res := value()
 			messageText(client, ctx, v.Info.Sender, res)
 		}
 	}
 }
 
-var CMD_ImgToImg = map[string]func(img *waProto.ImageMessage, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID){
-	`/buriq`: generateSticker,
+var CMD_CommandToText = map[string]func(
+	ctx context.Context,
+	in string,
+) string{
+	`/gpt`:    handlers.ChatGPT,
+	`/gemini`: handlers.GeminiAI,
 }
 
-func messageText(client *whatsmeow.Client, ctx context.Context, to types.JID, msg string) {
+func commandToText(
+	msg string,
+	ctx context.Context,
+	client *whatsmeow.Client,
+	v *events.Message,
+	to types.JID,
+) {
+	for key, value := range CMD_CommandToText {
+		if strings.HasPrefix(msg, key) {
+			in := strings.TrimPrefix(msg, key)
+			res := value(ctx, in)
+			if res != `` {
+				messageText(client, ctx, v.Info.Sender, res)
+			}
+		}
+	}
+}
+
+var CMD_ImageToImage = map[string]func(
+	client *whatsmeow.Client,
+	img *waProto.ImageMessage,
+	id string,
+) ([]byte, string, error){
+	`/buriq`: handlers.Buriq,
+}
+
+func imageToImage(
+	ctx context.Context,
+	client *whatsmeow.Client,
+	v *events.Message,
+	to types.JID,
+	img *waProto.ImageMessage,
+) {
+	imgCaption := img.GetCaption()
+	for key, value := range CMD_ImageToImage {
+		if strings.Contains(imgCaption, key) {
+			data, caption, err := value(client, img, v.Info.ID)
+			sendMessageIfError(err, client, ctx, to)
+			if err == nil {
+				messageImage(ctx, client, v, to, data, caption)
+			}
+		}
+	}
+}
+
+func messageText(
+	client *whatsmeow.Client,
+	ctx context.Context,
+	to types.JID,
+	msg string,
+) {
 	_, err := client.SendMessage(ctx, to, &waProto.Message{
 		Conversation: proto.String(msg),
 	})
@@ -111,111 +168,46 @@ func messageText(client *whatsmeow.Client, ctx context.Context, to types.JID, ms
 	}
 }
 
-func generateSticker(img *waProto.ImageMessage, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID) {
-	if img.GetCaption() == `/sticker` {
-		data, err := client.Download(img)
-		if err != nil {
-			log.Println("ERROR Download file")
-		}
-		rawPath := fmt.Sprintf("tmp/%s.jpg", v.Info.ID)
-		err = os.WriteFile(rawPath, data, 0600)
-		if err != nil {
-			log.Println("ERROR cannot write file")
-		}
+func messageImage(
+	ctx context.Context,
+	client *whatsmeow.Client,
+	v *events.Message,
+	to types.JID,
+	data []byte,
+	caption string,
+) {
+	uploaded, err := client.Upload(ctx, data, whatsmeow.MediaImage)
+	sendMessageIfError(err, client, ctx, to)
 
-		log.Println("IMAGE WIDTH:", img.GetWidth())
-		log.Println("IMAGE HEIGHT:", img.GetHeight())
-		if img.GetWidth() == img.GetHeight() {
-			log.Println("IMAGE RATIO SAME")
-		}
-
-		_, err = client.SendMessage(ctx, to, &waProto.Message{
-			StickerMessage: &waProto.StickerMessage{
-				Url:           proto.String(img.GetUrl()),
-				DirectPath:    proto.String(img.GetDirectPath()),
-				MediaKey:      img.GetMediaKey(),
-				Mimetype:      proto.String(img.GetMimetype()),
-				FileEncSha256: img.GetFileEncSha256(),
-				FileSha256:    img.GetFileSha256(),
-				FileLength:    proto.Uint64(img.GetFileLength()),
-				ContextInfo:   img.GetContextInfo(),
-				PngThumbnail:  img.GetThumbnailSha256(),
-				Height:        proto.Uint32(100),
-				Width:         proto.Uint32(100),
+	_, err = client.SendMessage(ctx, to, &waProto.Message{
+		ImageMessage: &waProto.ImageMessage{
+			Url:           proto.String(uploaded.URL),
+			DirectPath:    proto.String(uploaded.DirectPath),
+			MediaKey:      uploaded.MediaKey,
+			Mimetype:      proto.String(http.DetectContentType(data)),
+			FileEncSha256: uploaded.FileEncSHA256,
+			FileSha256:    uploaded.FileSHA256,
+			FileLength:    proto.Uint64(uint64(len(data))),
+			ContextInfo: &waProto.ContextInfo{
+				StanzaId:      &v.Info.ID,
+				Participant:   proto.String(v.Info.Sender.String()),
+				QuotedMessage: v.Message,
 			},
-		})
-		if err != nil {
-			log.Println("ERROR send message:", err)
-		}
-	}
-}
-
-func sendImgBack(img *waProto.ImageMessage, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID) {
-	switch img.GetCaption() {
-	case `/sendback`:
-		_, err := client.SendMessage(ctx, to, &waProto.Message{
-			ImageMessage: &waProto.ImageMessage{
-				Url:           proto.String(img.GetUrl()),
-				DirectPath:    proto.String(img.GetDirectPath()),
-				MediaKey:      img.GetMediaKey(),
-				Mimetype:      proto.String(img.GetMimetype()),
-				FileEncSha256: img.GetFileEncSha256(),
-				FileSha256:    img.GetFileSha256(),
-				FileLength:    proto.Uint64(img.GetFileLength()),
-				ContextInfo:   img.GetContextInfo(),
-			},
-		})
-		if err != nil {
-			log.Println("ERROR send message:", err)
-		}
-	case `/resize`:
-		data, err := client.Download(img)
-		sendMessageIfError(err, client, ctx, to, "error download file")
-
-		path, err := utils.SaveImage(v.Info.ID, data)
-		sendMessageIfError(err, client, ctx, to, "cannot save image")
-
-		src, err := imaging.Open(path)
-		sendMessageIfError(err, client, ctx, to, "cannot open file")
-
-		if img.GetHeight() != img.GetWidth() {
-			src = imaging.CropAnchor(src, 100, 100, imaging.Center)
-		}
-
-		src = imaging.Resize(src, 100, 100, imaging.Lanczos)
-		sendMessageIfError(err, client, ctx, to, "cannot save file")
-
-		stc, err := os.ReadFile(path)
-		sendMessageIfError(err, client, ctx, to, "failed to open file")
-
-		uploaded, err := client.Upload(ctx, stc, whatsmeow.MediaImage)
-		sendMessageIfError(err, client, ctx, to, "failed to upload file")
-
-		_, err = client.SendMessage(ctx, to, &waProto.Message{
-			ImageMessage: &waProto.ImageMessage{
-				Url:           proto.String(uploaded.URL),
-				DirectPath:    proto.String(uploaded.DirectPath),
-				MediaKey:      uploaded.MediaKey,
-				Mimetype:      proto.String(http.DetectContentType(stc)),
-				FileEncSha256: uploaded.FileEncSHA256,
-				FileSha256:    uploaded.FileSHA256,
-				FileLength:    proto.Uint64(uint64(len(stc))),
-				ContextInfo: &waProto.ContextInfo{
-					StanzaId:      &v.Info.ID,
-					Participant:   proto.String(v.Info.Sender.String()),
-					QuotedMessage: v.Message,
-				},
-				Caption: proto.String(`Gambar buriq siyapp`),
-			},
-		})
-		if err != nil {
-			log.Println("ERROR send message:", err)
-		}
-	}
-}
-
-func sendMessageIfError(err error, client *whatsmeow.Client, ctx context.Context, to types.JID, res string) {
+			Caption: proto.String(caption),
+		},
+	})
 	if err != nil {
-		messageText(client, ctx, to, res)
+		log.Println("ERROR send message:", err)
+	}
+}
+
+func sendMessageIfError(
+	err error,
+	client *whatsmeow.Client,
+	ctx context.Context,
+	to types.JID,
+) {
+	if err != nil {
+		messageText(client, ctx, to, err.Error())
 	}
 }
