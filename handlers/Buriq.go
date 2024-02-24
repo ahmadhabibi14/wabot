@@ -40,7 +40,7 @@ func Buriq(client *whatsmeow.Client, img *waProto.ImageMessage, id string) ([]by
 		src = imaging.CropAnchor(src, int(width), int(height), imaging.Center)
 	}
 
-	src = imaging.Resize(src, 100, 100, imaging.Lanczos)
+	src = imaging.Resize(src, 80, 80, imaging.Lanczos)
 	if err != nil {
 		return nil, ``, errors.New("cannot resize image")
 	}
