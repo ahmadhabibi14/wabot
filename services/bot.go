@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/ahmadhabibi14/wabot/handlers"
 	"github.com/ahmadhabibi14/wabot/utils"
+	"github.com/disintegration/imaging"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal"
 	"go.mau.fi/whatsmeow"
@@ -51,9 +53,9 @@ func (b *Bot) Start() {
 		for evt := range qrChan {
 			if evt.Event == "code" {
 				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-				fmt.Println("Please scan to your whatsapp")
+				log.Println("Please scan to your whatsapp")
 			} else {
-				fmt.Println("Success Login !!!")
+				log.Println("Success Login !!!")
 			}
 		}
 	} else {
@@ -96,6 +98,10 @@ func textToText(msg string, ctx context.Context, client *whatsmeow.Client, v *ev
 	}
 }
 
+var CMD_ImgToImg = map[string]func(img *waProto.ImageMessage, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID){
+	`/buriq`: generateSticker,
+}
+
 func messageText(client *whatsmeow.Client, ctx context.Context, to types.JID, msg string) {
 	_, err := client.SendMessage(ctx, to, &waProto.Message{
 		Conversation: proto.String(msg),
@@ -117,6 +123,12 @@ func generateSticker(img *waProto.ImageMessage, ctx context.Context, client *wha
 			log.Println("ERROR cannot write file")
 		}
 
+		log.Println("IMAGE WIDTH:", img.GetWidth())
+		log.Println("IMAGE HEIGHT:", img.GetHeight())
+		if img.GetWidth() == img.GetHeight() {
+			log.Println("IMAGE RATIO SAME")
+		}
+
 		_, err = client.SendMessage(ctx, to, &waProto.Message{
 			StickerMessage: &waProto.StickerMessage{
 				Url:           proto.String(img.GetUrl()),
@@ -128,6 +140,8 @@ func generateSticker(img *waProto.ImageMessage, ctx context.Context, client *wha
 				FileLength:    proto.Uint64(img.GetFileLength()),
 				ContextInfo:   img.GetContextInfo(),
 				PngThumbnail:  img.GetThumbnailSha256(),
+				Height:        proto.Uint32(100),
+				Width:         proto.Uint32(100),
 			},
 		})
 		if err != nil {
@@ -137,32 +151,71 @@ func generateSticker(img *waProto.ImageMessage, ctx context.Context, client *wha
 }
 
 func sendImgBack(img *waProto.ImageMessage, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID) {
-	// if img.GetCaption() == `/sendback` {
-	data, err := client.Download(img)
-	if err != nil {
-		log.Println("ERROR Download file")
-	}
+	switch img.GetCaption() {
+	case `/sendback`:
+		_, err := client.SendMessage(ctx, to, &waProto.Message{
+			ImageMessage: &waProto.ImageMessage{
+				Url:           proto.String(img.GetUrl()),
+				DirectPath:    proto.String(img.GetDirectPath()),
+				MediaKey:      img.GetMediaKey(),
+				Mimetype:      proto.String(img.GetMimetype()),
+				FileEncSha256: img.GetFileEncSha256(),
+				FileSha256:    img.GetFileSha256(),
+				FileLength:    proto.Uint64(img.GetFileLength()),
+				ContextInfo:   img.GetContextInfo(),
+			},
+		})
+		if err != nil {
+			log.Println("ERROR send message:", err)
+		}
+	case `/resize`:
+		data, err := client.Download(img)
+		sendMessageIfError(err, client, ctx, to, "error download file")
 
-	rawPath := fmt.Sprintf("tmp/%s.jpg", v.Info.ID)
-	err = os.WriteFile(rawPath, data, 0600)
-	if err != nil {
-		log.Println("ERROR cannot write file")
-	}
+		path, err := utils.SaveImage(v.Info.ID, data)
+		sendMessageIfError(err, client, ctx, to, "cannot save image")
 
-	_, err = client.SendMessage(ctx, to, &waProto.Message{
-		ImageMessage: &waProto.ImageMessage{
-			Url:           proto.String(img.GetUrl()),
-			DirectPath:    proto.String(img.GetDirectPath()),
-			MediaKey:      img.GetMediaKey(),
-			Mimetype:      proto.String(img.GetMimetype()),
-			FileEncSha256: img.GetFileEncSha256(),
-			FileSha256:    img.GetFileSha256(),
-			FileLength:    proto.Uint64(img.GetFileLength()),
-			ContextInfo:   img.GetContextInfo(),
-		},
-	})
-	if err != nil {
-		log.Println("ERROR send message:", err)
+		src, err := imaging.Open(path)
+		sendMessageIfError(err, client, ctx, to, "cannot open file")
+
+		if img.GetHeight() != img.GetWidth() {
+			src = imaging.CropAnchor(src, 100, 100, imaging.Center)
+		}
+
+		src = imaging.Resize(src, 100, 100, imaging.Lanczos)
+		sendMessageIfError(err, client, ctx, to, "cannot save file")
+
+		stc, err := os.ReadFile(path)
+		sendMessageIfError(err, client, ctx, to, "failed to open file")
+
+		uploaded, err := client.Upload(ctx, stc, whatsmeow.MediaImage)
+		sendMessageIfError(err, client, ctx, to, "failed to upload file")
+
+		_, err = client.SendMessage(ctx, to, &waProto.Message{
+			ImageMessage: &waProto.ImageMessage{
+				Url:           proto.String(uploaded.URL),
+				DirectPath:    proto.String(uploaded.DirectPath),
+				MediaKey:      uploaded.MediaKey,
+				Mimetype:      proto.String(http.DetectContentType(stc)),
+				FileEncSha256: uploaded.FileEncSHA256,
+				FileSha256:    uploaded.FileSHA256,
+				FileLength:    proto.Uint64(uint64(len(stc))),
+				ContextInfo: &waProto.ContextInfo{
+					StanzaId:      &v.Info.ID,
+					Participant:   proto.String(v.Info.Sender.String()),
+					QuotedMessage: v.Message,
+				},
+				Caption: proto.String(`Gambar buriq siyapp`),
+			},
+		})
+		if err != nil {
+			log.Println("ERROR send message:", err)
+		}
 	}
-	// }
+}
+
+func sendMessageIfError(err error, client *whatsmeow.Client, ctx context.Context, to types.JID, res string) {
+	if err != nil {
+		messageText(client, ctx, to, res)
+	}
 }

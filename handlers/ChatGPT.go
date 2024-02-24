@@ -17,7 +17,7 @@ func ChatGPT(ctx context.Context, in string) string {
 		Prompt: []string{in},
 	})
 	if err != nil {
-		return err.Error()
+		return ``
 	}
 
 	return resp.Choices[0].Text
