@@ -1,30 +1,25 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
 	"strings"
-
-	"context"
+	"syscall"
 
 	"github.com/ahmadhabibi14/wabot/handlers"
 	"github.com/ahmadhabibi14/wabot/utils"
-
-	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/store"
-	"go.mau.fi/whatsmeow/types/events"
-	waLog "go.mau.fi/whatsmeow/util/log"
-
-	"os"
-	"os/signal"
-	"syscall"
-
-	waProto "go.mau.fi/whatsmeow/binary/proto"
-	"go.mau.fi/whatsmeow/types"
-	"google.golang.org/protobuf/proto"
-
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mdp/qrterminal"
+	"go.mau.fi/whatsmeow"
+	waProto "go.mau.fi/whatsmeow/binary/proto"
+	"go.mau.fi/whatsmeow/store"
+	"go.mau.fi/whatsmeow/types"
+	"go.mau.fi/whatsmeow/types/events"
+	waLog "go.mau.fi/whatsmeow/util/log"
+	"google.golang.org/protobuf/proto"
 )
 
 type Bot struct {
@@ -71,16 +66,6 @@ func (b *Bot) Start() {
 	client.Disconnect()
 }
 
-var CMD_TextToText = map[string]func(ctx context.Context, in string) string{
-	`/help`:   handlers.Help,
-	`/chtgpt`: handlers.ChatGPT,
-	`/gemini`: handlers.GeminiAI,
-}
-
-var CMD_TextToImg = map[string]func(ctx context.Context, in string) any{}
-
-var CMD_ImgToImg = map[string]func(ctx context.Context, in string) any{}
-
 func event(client *whatsmeow.Client) func(evt interface{}) {
 	return func(evt interface{}) {
 		switch v := evt.(type) {
@@ -89,20 +74,36 @@ func event(client *whatsmeow.Client) func(evt interface{}) {
 			// img := v.Message.GetImageMessage()
 			ctx := context.Background()
 			if !v.Info.IsGroup {
-				if msg != "" {
-					for key, value := range CMD_TextToText {
-						if strings.Contains(msg, key) {
-							res := value(ctx, msg)
-							messageText(client, ctx, v, v.Info.Sender, res)
-						}
-					}
-				}
+				textToText(msg, ctx, client, v, v.Info.Sender)
+				// if img.GetCaption() == `/sticker` {
+				// 	data, _ := client.Download(img)
+				// 	stc := CreateStickerIMG(client, v, data)
+				// 	_, err := client.SendMessage(context.Background(), v.Info.Sender, stc)
+				// 	if err != nil {
+				// 		return
+				// 	}
+				// }
 			}
 		}
 	}
 }
 
-func messageText(client *whatsmeow.Client, ctx context.Context, v *events.Message, to types.JID, msg string) {
+var CMD_TextToText = map[string]func(ctx context.Context, in string) string{
+	`/help`:   handlers.Help,
+	`/chtgpt`: handlers.ChatGPT,
+	`/gemini`: handlers.GeminiAI,
+}
+
+func textToText(msg string, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID) {
+	for key, value := range CMD_TextToText {
+		if strings.Contains(msg, key) {
+			res := value(ctx, msg)
+			messageText(client, ctx, v.Info.Sender, res)
+		}
+	}
+}
+
+func messageText(client *whatsmeow.Client, ctx context.Context, to types.JID, msg string) {
 	_, err := client.SendMessage(ctx, to, &waProto.Message{
 		Conversation: proto.String(msg),
 	})
@@ -110,15 +111,3 @@ func messageText(client *whatsmeow.Client, ctx context.Context, v *events.Messag
 		log.Println(err)
 	}
 }
-
-// func messageSticker(client *whatsmeow.Client, v *events.Message, to types.JID, msg string) {
-// 	_, err := client.SendMessage(context.Background(), to, &waProto.Message{
-// 		StickerMessage: &waProto.StickerMessage{
-// 			Url: proto.String(``),
-
-// 		},
-// 	})
-// 	if err != nil {
-// 		log.Println(err)
-// 	}
-// }
