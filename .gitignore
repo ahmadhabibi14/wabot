@@ -3,3 +3,4 @@ session.db-journal
 main
 .env
 tmp/main
+tmp/*.jpg

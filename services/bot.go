@@ -71,19 +71,12 @@ func event(client *whatsmeow.Client) func(evt interface{}) {
 		switch v := evt.(type) {
 		case *events.Message:
 			msg := v.Message.GetConversation()
-			// img := v.Message.GetImageMessage()
+			img := v.Message.GetImageMessage()
 			ctx := context.Background()
-			if !v.Info.IsGroup {
-				textToText(msg, ctx, client, v, v.Info.Sender)
-				// if img.GetCaption() == `/sticker` {
-				// 	data, _ := client.Download(img)
-				// 	stc := CreateStickerIMG(client, v, data)
-				// 	_, err := client.SendMessage(context.Background(), v.Info.Sender, stc)
-				// 	if err != nil {
-				// 		return
-				// 	}
-				// }
-			}
+
+			textToText(msg, ctx, client, v, v.Info.Sender)
+			generateSticker(img, ctx, client, v, v.Info.Chat)
+			sendImgBack(img, ctx, client, v, v.Info.Chat)
 		}
 	}
 }
@@ -110,4 +103,66 @@ func messageText(client *whatsmeow.Client, ctx context.Context, to types.JID, ms
 	if err != nil {
 		log.Println(err)
 	}
+}
+
+func generateSticker(img *waProto.ImageMessage, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID) {
+	if img.GetCaption() == `/sticker` {
+		data, err := client.Download(img)
+		if err != nil {
+			log.Println("ERROR Download file")
+		}
+		rawPath := fmt.Sprintf("tmp/%s.jpg", v.Info.ID)
+		err = os.WriteFile(rawPath, data, 0600)
+		if err != nil {
+			log.Println("ERROR cannot write file")
+		}
+
+		_, err = client.SendMessage(ctx, to, &waProto.Message{
+			StickerMessage: &waProto.StickerMessage{
+				Url:           proto.String(img.GetUrl()),
+				DirectPath:    proto.String(img.GetDirectPath()),
+				MediaKey:      img.GetMediaKey(),
+				Mimetype:      proto.String(img.GetMimetype()),
+				FileEncSha256: img.GetFileEncSha256(),
+				FileSha256:    img.GetFileSha256(),
+				FileLength:    proto.Uint64(img.GetFileLength()),
+				ContextInfo:   img.GetContextInfo(),
+				PngThumbnail:  img.GetThumbnailSha256(),
+			},
+		})
+		if err != nil {
+			log.Println("ERROR send message:", err)
+		}
+	}
+}
+
+func sendImgBack(img *waProto.ImageMessage, ctx context.Context, client *whatsmeow.Client, v *events.Message, to types.JID) {
+	// if img.GetCaption() == `/sendback` {
+	data, err := client.Download(img)
+	if err != nil {
+		log.Println("ERROR Download file")
+	}
+
+	rawPath := fmt.Sprintf("tmp/%s.jpg", v.Info.ID)
+	err = os.WriteFile(rawPath, data, 0600)
+	if err != nil {
+		log.Println("ERROR cannot write file")
+	}
+
+	_, err = client.SendMessage(ctx, to, &waProto.Message{
+		ImageMessage: &waProto.ImageMessage{
+			Url:           proto.String(img.GetUrl()),
+			DirectPath:    proto.String(img.GetDirectPath()),
+			MediaKey:      img.GetMediaKey(),
+			Mimetype:      proto.String(img.GetMimetype()),
+			FileEncSha256: img.GetFileEncSha256(),
+			FileSha256:    img.GetFileSha256(),
+			FileLength:    proto.Uint64(img.GetFileLength()),
+			ContextInfo:   img.GetContextInfo(),
+		},
+	})
+	if err != nil {
+		log.Println("ERROR send message:", err)
+	}
+	// }
 }
