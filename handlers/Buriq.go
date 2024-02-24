@@ -29,18 +29,26 @@ func Buriq(client *whatsmeow.Client, img *waProto.ImageMessage, id string) ([]by
 		return nil, ``, errors.New("cannot open file")
 	}
 
-	if img.GetHeight() != img.GetWidth() {
-		width := img.GetWidth()
-		height := img.GetHeight()
+	width := img.GetWidth()
+	height := img.GetHeight()
+	ratio := 70
+
+	if width == height {
+		width = uint32(ratio)
+		height = uint32(ratio)
+	} else {
 		if width > height {
-			width = height
+			newRatio := ratio / int(height)
+			width = width * uint32(newRatio)
+			height = uint32(ratio)
 		} else {
-			height = width
+			newRatio := ratio / int(width)
+			height = height * uint32(newRatio)
+			width = uint32(ratio)
 		}
-		src = imaging.CropAnchor(src, int(width), int(height), imaging.Center)
 	}
 
-	src = imaging.Resize(src, 80, 80, imaging.Lanczos)
+	src = imaging.Resize(src, int(width), int(height), imaging.Lanczos)
 	if err != nil {
 		return nil, ``, errors.New("cannot resize image")
 	}
