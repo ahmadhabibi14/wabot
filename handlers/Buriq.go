@@ -32,6 +32,12 @@ func Buriq(client *whatsmeow.Client, img *waProto.ImageMessage, id string) ([]by
 	width := img.GetWidth()
 	height := img.GetHeight()
 	ratio := 70
+	if height < uint32(ratio) {
+		ratio = int(height)
+	}
+	if width < uint32(ratio) {
+		ratio = int(width)
+	}
 
 	if width == height {
 		width = uint32(ratio)
