@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/0x9ef/openai-go"
@@ -14,7 +15,7 @@ func ChatGPT(ctx context.Context, in string) string {
 		Prompt: []string{in},
 	})
 	if err != nil {
-		return ``
+		return fmt.Sprintf("error when requesting to OpenAI: %s", err.Error())
 	}
 
 	return resp.Choices[0].Text
