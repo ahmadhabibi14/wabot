@@ -93,6 +93,7 @@ func generalMsg(
 	v *events.Message,
 	to types.JID,
 ) {
+	_ = to
 	for key, value := range CMD_General {
 		if msg == key {
 			res := value()
@@ -116,6 +117,7 @@ func commandToText(
 	v *events.Message,
 	to types.JID,
 ) {
+	_ = to
 	for key, value := range CMD_CommandToText {
 		if strings.HasPrefix(msg, key) {
 			in := strings.TrimPrefix(msg, key)
